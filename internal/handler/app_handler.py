@@ -1,7 +1,7 @@
 '''
 Date: 2026-08-28 14:52:33
 Author: parker
-FilePath: app_handler.py
+FilePath: \llmops-api\internal\handler\app_handler.py
 '''
 import os
 
@@ -11,6 +11,7 @@ from werkzeug.datastructures import MultiDict
 
 from internal.schema.app_schema import CompletionReq
 
+from pkg.response import success_json, validation_error_json
 
 class AppHandler:
     """应用控制器"""
@@ -19,7 +20,7 @@ class AppHandler:
         data = request.get_json(silent=True) or {}
         req = CompletionReq(formdata=MultiDict(data))
         if not req.validate():
-            return {"error": req.errors}, 400
+            return validation_error_json(req.errors)
         query = req.query.data
         print(f"用户输入: {query}")
 
@@ -40,4 +41,7 @@ class AppHandler:
         )
         resp.raise_for_status()
 
-        return resp.json()["choices"][0]["message"]["content"]
+        data = resp.json()
+        content = data["choices"][0]["message"]["content"]
+
+        return success_json({"content": content})
