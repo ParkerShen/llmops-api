@@ -9,18 +9,38 @@ from flask import Flask
 from internal.router import Router
 from config import Config
 from internal.exception import CustomException
+from internal.extension.database_extension import db
 from pkg.response import HttpCode, json, Response
+from pkg.sqlalchemy import SQLAlchemy
+
+from internal.model import App
+
+
 
 class Http(Flask):
     """HTTP服务"""
-    def __init__(self, *args, router: Router, config: Config, **kwargs):
+    def __init__(self, *args, router: Router,db: SQLAlchemy, config: Config, **kwargs):
         super().__init__(*args, **kwargs)
         # 1.注册路由
         router.register_routes(self)
         # 2.应用配置
         self.config.from_object(config)
 
-        # 3.注册异常处理器
+        # 3.初始化数据库连接
+        db.init_app(self)
+        with self.app_context():
+            _ = App()
+            db.create_all()
+        
+        try:
+            # 自动创建数据表(学习阶段够用;生产环境建议用 Alembic 迁移工具)
+            with self.app_context():
+                db.create_all()
+        except Exception as e:
+            # 数据库连不上(比如 .env 密码没配)不影响服务启动,打印警告
+            print(f"[警告] 数据库初始化失败(检查 .env 的 DATABASE_URL): {e}")
+
+        # 4.注册异常处理器
         self.register_error_handler(Exception, self._register_error_handler)
 
     def _register_error_handler(self, error: Exception):
