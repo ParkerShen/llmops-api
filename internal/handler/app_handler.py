@@ -18,6 +18,11 @@ from internal.service import AppService
 
 from pkg.response import success_json, validation_error_json, success_message, not_found_message
 
+from langchain_core.prompts import ChatPromptTemplate
+
+from langchain_deepseek import ChatDeepSeek
+
+from langchain_core.output_parsers import StrOutputParser
 @inject
 @dataclass
 
@@ -53,26 +58,15 @@ class AppHandler:
         if not req.validate():
             return validation_error_json(req.errors)
         query = req.query.data
+        prompt = ChatPromptTemplate.from_template("{query}")
+        llm = ChatDeepSeek(model="deepseek-chat")
+        parser = StrOutputParser()
+
         print(f"用户输入: {query}")
 
-        # 调用 DeepSeek 官方 API（https://api.deepseek.com）
-        resp = requests.post(
-            "https://api.deepseek.com/chat/completions",
-            headers={
-                "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
-                "messages": [
-                    {"role": "system", "content": "请根据用户回复对应信息"},
-                    {"role": "user", "content": query},
-                ],
-            },
-        )
-        resp.raise_for_status()
+        # 3. 构建模型
+        chain = prompt | llm | parser
+       
+        
 
-        data = resp.json()
-        content = data["choices"][0]["message"]["content"]
-
-        return success_json({"content": content})
+        return success_json({"content": chain.invoke({"query":"你好"})})

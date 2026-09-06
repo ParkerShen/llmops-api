@@ -26,3 +26,6 @@ Thumbs.db
 # Database
 *.db
 *.sqlite3
+
+# Node.js (误装在 python 后端的依赖)
+node_modules/
