@@ -69,4 +69,4 @@ class AppHandler:
        
         
 
-        return success_json({"content": chain.invoke({"query":"你好"})})
+        return success_json({"content": chain.invoke({"query":query})})
