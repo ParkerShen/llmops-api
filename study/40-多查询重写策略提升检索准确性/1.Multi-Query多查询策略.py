@@ -108,20 +108,20 @@ mq_retriever = MultiQueryRetriever.from_llm(retriever=base_retriever, llm=llm)
 
 QUESTION = "入职要准备什么?"
 
-print("=" * 74)
-print("第 1 部分:最小用法 + 打开 logging 看生成的查询")
-print("=" * 74)
-print(f'\n原始问题: "{QUESTION}"')
-print("调用 mq_retriever.invoke(...) ...\n")
+# print("=" * 74)
+# print("第 1 部分:最小用法 + 打开 logging 看生成的查询")
+# print("=" * 74)
+# print(f'\n原始问题: "{QUESTION}"')
+# print("调用 mq_retriever.invoke(...) ...\n")
 
-# ⚠️ 这里只调用**一次**,把结果存下来。
-#    千万别在 print 里连着调两次(比如先 len() 再取内容)——
-#    每调一次就会重新请求一次 LLM,不但烧钱,而且两次结果可能不一样(见第 6 部分)。
+# # ⚠️ 这里只调用**一次**,把结果存下来。
+# #    千万别在 print 里连着调两次(比如先 len() 再取内容)——
+# #    每调一次就会重新请求一次 LLM,不但烧钱,而且两次结果可能不一样(见第 6 部分)。
 mq_docs = mq_retriever.invoke(QUESTION)
 
-print(f"\n最终返回 {len(mq_docs)} 条:")
-for i, d in enumerate(mq_docs):
-    print(f"  [{i}] [{d.metadata['topic']}] {d.page_content[:30]}...")
+# print(f"\n最终返回 {len(mq_docs)} 条:")
+# for i, d in enumerate(mq_docs):
+#     print(f"  [{i}] [{d.metadata['topic']}] {d.page_content[:30]}...")
 
 # 上面那几行 "Generated queries: [...]" 就是它自动生成的查询。
 # 划重点:这些查询**不是同义改写**吗?先别急着下结论,第 4 部分会算这笔账。
@@ -183,7 +183,7 @@ for i, d in enumerate(mq_docs):
 #   C. 单查询 k=12                    —— 公平参照:多查询用了 3×4 的预算,那单查询也给它 12
 
 # 先看一下基线:单查询能捞到什么
-single_k4 = db.as_retriever(search_kwargs={"k": 4}).invoke(QUESTION)
+# single_k4 = db.as_retriever(search_kwargs={"k": 4}).invoke(QUESTION)
 
 
 def show(label, docs):
@@ -191,22 +191,22 @@ def show(label, docs):
     print(f"  {label:<26} {len(docs):>2} 条: {topics}")
 
 
-print()
-print("=" * 74)
-print(f'第 3 部分:实测对比(问题:"{QUESTION}")')
-print("=" * 74)
-print()
-show("A. 单查询 k=4", single_k4)
-show("B. 多查询(默认提示词)", mq_docs)
+# print()
+# print("=" * 74)
+# print(f'第 3 部分:实测对比(问题:"{QUESTION}")')
+# print("=" * 74)
+# print()
+# show("A. 单查询 k=4", single_k4)
+# show("B. 多查询(默认提示词)", mq_docs)
 
 # C 组故意用了 12 —— 多查询开了 3 条查询、每条 k=4,一共花了 12 个名额的检索预算。
 # 要跟它比,单查询也得给到 12,否则就是拿 4 条比 12 条,赢得不光彩。
-show("C. 单查询 k=12(同预算)", db.as_retriever(search_kwargs={"k": 12}).invoke(QUESTION))
+# show("C. 单查询 k=12(同预算)", db.as_retriever(search_kwargs={"k": 12}).invoke(QUESTION))
 
-print()
-print("  对照:C 组捞到的全部内容:")
-for d in db.as_retriever(search_kwargs={"k": 12}).invoke(QUESTION):
-    print(f"      [{d.metadata['topic']}]")
+# print()
+# print("  对照:C 组捞到的全部内容:")
+# for d in db.as_retriever(search_kwargs={"k": 12}).invoke(QUESTION):
+#     print(f"      [{d.metadata['topic']}]")
 
 # ===== 现在看这份数据说明了什么 =====
 #
@@ -293,18 +293,18 @@ mq_facet = MultiQueryRetriever.from_llm(
     prompt=FACET_PROMPT,
 )
 
-print()
-print("=" * 74)
-print("第 5 部分:换成【不同角度】的提示词")
-print("=" * 74)
-print(f'\n原始问题: "{QUESTION}"')
-print("调用中...\n")
+# print()
+# print("=" * 74)
+# print("第 5 部分:换成【不同角度】的提示词")
+# print("=" * 74)
+# print(f'\n原始问题: "{QUESTION}"')
+# print("调用中...\n")
 
-facet_docs = mq_facet.invoke(QUESTION)
+# facet_docs = mq_facet.invoke(QUESTION)
 
-print()
-show("B. 多查询(默认提示词)", mq_docs)
-show("D. 多查询(不同角度提示词)", facet_docs)
+# print()
+# show("B. 多查询(默认提示词)", mq_docs)
+# show("D. 多查询(不同角度提示词)", facet_docs)
 
 # 对比 B 和 D 的 topic 列表。D 捞到的文档覆盖了**明显不同**的侧面 ——
 # 这才是多查询本来该有的样子。
@@ -352,15 +352,15 @@ show("D. 多查询(不同角度提示词)", facet_docs)
 # ---- 非确定性:同一个问题,两次运行结果可能不一样 ----
 # 这个坑最隐蔽。下面**故意**把同一个问题问两次,并开启日志对比:
 
-print()
-print("=" * 74)
-print("第 6 部分:同一问题连问两次,生成的查询一样吗?")
-print("=" * 74)
-print("(注意看下面两行 Generated queries,不是第 1 部分的缓存,是**重新生成**的)\n")
+# print()
+# print("=" * 74)
+# print("第 6 部分:同一问题连问两次,生成的查询一样吗?")
+# print("=" * 74)
+# print("(注意看下面两行 Generated queries,不是第 1 部分的缓存,是**重新生成**的)\n")
 
-for i in (1, 2):
-    print(f"  ---- 第 {i} 次 ----")
-    mq_facet.invoke(QUESTION)
+# for i in (1, 2):
+#     print(f"  ---- 第 {i} 次 ----")
+#     mq_facet.invoke(QUESTION)
 
 # 即使 temperature=0,两次结果也**很可能不一样**。
 # 原因:大模型的推理本身不保证逐位可复现(并行计算、批处理、MoE 路由等),
@@ -404,16 +404,16 @@ mq_with_orig = MultiQueryRetriever.from_llm(
 
 PROBE_Q = "报到当天要带哪些材料"
 
-print()
-print("=" * 74)
-print("第 7 部分:假 LLM 验证 include_original(结果完全可复现)")
-print("=" * 74)
-print()
-print('  固定的"生成查询" = ["年假有几天"]  (由假 LLM 写死)')
-print(f'  用户原问题       = "{PROBE_Q}"')
-print()
-show("include_original=False", mq_no_orig.invoke(PROBE_Q))
-show("include_original=True ", mq_with_orig.invoke(PROBE_Q))
+# print()
+# print("=" * 74)
+# print("第 7 部分:假 LLM 验证 include_original(结果完全可复现)")
+# print("=" * 74)
+# print()
+# print('  固定的"生成查询" = ["年假有几天"]  (由假 LLM 写死)')
+# print(f'  用户原问题       = "{PROBE_Q}"')
+# print()
+# show("include_original=False", mq_no_orig.invoke(PROBE_Q))
+# show("include_original=True ", mq_with_orig.invoke(PROBE_Q))
 
 # 看明白了:
 #   False → 只捞到"年假规则",因为用户原话压根没去检索
@@ -445,23 +445,23 @@ show("include_original=True ", mq_with_orig.invoke(PROBE_Q))
 #   需要结果严格按相关性排序                        → 别直接用,它不排序(第 2 部分结论 1)
 
 
-# ============================================================================
-# 小结
-# ============================================================================
-#   机制一句话:1 次 LLM 生成 N 条查询 → 各检索一次 → 取并集去重。
-#
-#   必须记住的四点:
-#     1. 导入路径是 langchain_classic.retrievers.multi_query(1.x 没有 langchain 包了)
-#     2. 不配 logging 你看不到生成的查询 —— 它用 logger.info 输出,默认不显示
-#     3. **默认提示词生成的是同义改写,不是不同角度**。
-#        三句话落在同一个语义区域,并集几乎不变宽。
-#        要用它就得**自己写提示词**要求"不同侧面"。
-#     4. 返回的并集**没有按相关性排序**,顺序是"第1条查询的结果、第2条查询的结果…"
-#
-#   三个坑:
-#     parser_key 已废弃(传了静默失效)
-#     include_original 默认 False(用户原话默认不参与检索)
-#     同一个问题两次运行结果可能不同(非确定性,测试时请用假模型)
-#
-#   最该记住的一句:
-#     多查询**不是免费的午餐**。如果调大 k 就能解决,就别用它。
+# # ============================================================================
+# # 小结
+# # ============================================================================
+# #   机制一句话:1 次 LLM 生成 N 条查询 → 各检索一次 → 取并集去重。
+# #
+# #   必须记住的四点:
+# #     1. 导入路径是 langchain_classic.retrievers.multi_query(1.x 没有 langchain 包了)
+# #     2. 不配 logging 你看不到生成的查询 —— 它用 logger.info 输出,默认不显示
+# #     3. **默认提示词生成的是同义改写,不是不同角度**。
+# #        三句话落在同一个语义区域,并集几乎不变宽。
+# #        要用它就得**自己写提示词**要求"不同侧面"。
+# #     4. 返回的并集**没有按相关性排序**,顺序是"第1条查询的结果、第2条查询的结果…"
+# #
+# #   三个坑:
+# #     parser_key 已废弃(传了静默失效)
+# #     include_original 默认 False(用户原话默认不参与检索)
+# #     同一个问题两次运行结果可能不同(非确定性,测试时请用假模型)
+# #
+# #   最该记住的一句:
+# #     多查询**不是免费的午餐**。如果调大 k 就能解决,就别用它。
