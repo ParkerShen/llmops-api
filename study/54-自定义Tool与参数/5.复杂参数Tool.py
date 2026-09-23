@@ -11,7 +11,9 @@ Description: 自定义 Tool 与参数 —— 复杂参数（列表 / 对象）
 # 第 6 步要用到嵌套对象，那时候再补 pydantic 的导入。
 # TODO(你写)：
 # ------------------------------------------------------------
-
+import  json
+from langchain_core.tools import tool
+from pydantic import BaseModel, Field
 
 # ============================================================
 # 第 2 步：定义一个参数是「列表」的 Tool
@@ -23,6 +25,10 @@ Description: 自定义 Tool 与参数 —— 复杂参数（列表 / 对象）
 #      提示：列表要拼进 f-string 里，想想怎么把 ["北京","上海"] 变成 "北京、上海"
 # TODO(你写)：
 # ------------------------------------------------------------
+@tool
+def get_area_code(city: list[str]) -> str:
+    """获取多个城市的区号"""
+    return f"城市：{'、'.join(city)}"
 
 
 # ============================================================
@@ -36,14 +42,18 @@ Description: 自定义 Tool 与参数 —— 复杂参数（列表 / 对象）
 #      是 "北京" 还是 ["北京", "上海"]？
 # TODO(你写)：
 # ------------------------------------------------------------
-
+# print(get_area_code.invoke("北京、上海"))
+ # A.type 是 array
+ # B. item  string
+ # C. ["北京", "上海"]
+# print(json.dumps(get_area_code.args_schema.model_json_schema(), ensure_ascii=False, indent=2))
 
 # ============================================================
 # 第 4 步：正常调用一次
 # invoke 的时候，这个参数该传什么？（Python 列表长什么样）
 # TODO(你写)：
 # ------------------------------------------------------------
-
+# print(get_area_code.invoke({"city":["北京", "上海"]}))
 
 # ============================================================
 # 第 5 步：实验 —— 又来了，故意传错类型
@@ -61,30 +71,73 @@ Description: 自定义 Tool 与参数 —— 复杂参数（列表 / 对象）
 #      （提示：什么样的转换它敢做，什么样的它不敢做？）
 # TODO(你写)：
 # ------------------------------------------------------------
-
-
+#.报错了
+# print(get_area_code.invoke({"city":"北京,上海"}))
 # ============================================================
 # 第 6 步（选做）：再升一级 —— 参数是个「对象」
 #
-# 上面列表是「一组同样的东西」。但有些参数是一组「不同的东西」，
-# 比如收货地址 = 城市 + 详细地址 + 邮编。
+# 前面列表是「一组同样的东西」。但有些参数是「一组不同的东西」，
+# 比如收货地址 = 城市 + 详细地址，两样都得有。
 #
-# 做法：先用 pydantic 定义一个类当模板，再拿它当参数类型：
-#
-#     from pydantic import BaseModel, Field
-#
-#     class Addr(BaseModel):
-#         city: str = Field(description="城市")
-#         detail: str = Field(description="详细地址")
-#
-#     @tool
-#     def ship(cities: list[str], addr: Addr) -> str:
-#
-# 写完打印 schema，找找看：
-#   A. addr 这个参数在 properties 里是什么样子的？（有个 $ 开头的字段）
-#   B. schema 最外层是不是多了一块 $defs？里面装的是什么？
-#   C. 为什么它不直接把 Addr 展开写在 properties 里，而要引用过去？
-#
-# 这个可以不写，先把 1~5 步吃透。
-# TODO(选做)：
+# 做法：先用 pydantic 定义一个「形状」，再拿它当参数类型。
 # ------------------------------------------------------------
+
+# 6-1 定义形状
+# 每一行 = 这个对象必须有的一个字段。
+# 【注意】这段要顶格写，不能缩进（你上面抄的版本缩进了，那是 Python 代码块，
+#         直接粘到文件里会报 IndentationError）。
+#
+# TODO(你写)：照着下面这个结构，自己定一个类（名字和字段都自己起）
+#
+#     class 你的类名(BaseModel):
+#         字段名: str = Field(description="这个字段是什么")
+#         字段名: str = Field(description="这个字段是什么")
+
+
+# 6-2 把它当参数类型用
+# 要求：一个工具，两个参数
+#   · 一个 list[str]
+#   · 一个「你 6-1 定义的类」
+# 函数体里想取对象的字段，用「点」：addr.city
+#
+# TODO(你写)：
+
+
+# 6-3 打印完整 schema，找两样东西
+#   A. properties 里那个对象参数，值是什么？
+#      （应该只剩一个 $ 开头的字段，不是被展开的一大坨）
+#   B. schema 最外层多出来的一块，叫什么名字？里面装的是什么？
+#
+# TODO(你写)：
+
+
+# 6-4 调用
+# 关键问题：那个对象参数该传什么？
+#   不是你定义的那个类的实例，而是一个「字典」——
+#   key 就是你 6-1 里写的字段名。
+#   想清楚为什么（提示：LLM 吐出来的是 JSON，JSON 里没有"对象"这种东西）
+#
+# TODO(你写)：
+# ------------------------------------------------------------
+# 6-1 定义形状
+class Addr(BaseModel):
+    city: str = Field(description="城市")
+    detail: str = Field(description="详细地址")
+
+
+# 6-2 把它当参数类型用
+@tool
+def ship_order(cities: list[str], addr: Addr) -> str:
+    """批量发货，返回寄送信息"""
+    return f"寄往{addr.city}{addr.detail}，共{len(cities)}件"
+
+
+# 6-3 打印完整 schema
+print(json.dumps(ship_order.args_schema.model_json_schema(), ensure_ascii=False, indent=2))
+
+
+# 6-4 调用
+print(ship_order.invoke({
+    "cities": ["北京", "上海"],
+    "addr": {"city": "深圳", "detail": "南山"},
+}))

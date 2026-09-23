@@ -34,7 +34,7 @@ llm_tool = llm.bind_tools([get_order_status, get_order_detail])
 
 # 4. 建立工具名称映射字典
 tools_by_name = {t.name: t for t in [get_order_status, get_order_detail]}
-
+print(f"tools_by_name:{tools_by_name}")
 
 # 5. 初始化消息列表（只包含用户输入）
 messages = [HumanMessage(content="订单1和订单2分别是什么状态？")]
